@@ -4,7 +4,7 @@
 Author: Wei Luo
 Date: 2020-09-29 16:44:26
 LastEditors: Wei Luo
-LastEditTime: 2021-02-22 07:27:43
+LastEditTime: 2021-04-25 23:46:01
 Note: Note
 '''
 
@@ -143,18 +143,10 @@ if __name__ == '__main__':
     rospy.init_node('offboard_controller')
     controller_mode = rospy.get_param('~controller', 'mpc')
     offboard_obj = offboard_controller(controller_name=controller_mode)
-    # rate_time = rospy.Rate(50) # 50 Hz
-    # if not offboard_obj.state.mode == "OFFBOARD":
-    #     offboard_obj.set_mode('OFFBOARD', 10)
-    #     offboard_obj.set_arm(True, 10)
     offboard_obj.last_request = rospy.Time.now()
     while not rospy.is_shutdown() and offboard_obj.offboard_ready:
         # guard function to maintain offboard avaliable
         offboard_obj.guard()
-        # if not offboard_obj.offboard_ready:
-        #     pass
-        # sleep for a while and maintain the frequency
-        # rate_time.sleep()
         offboard_obj.rate.sleep()
 
     # stop the offboard mode
