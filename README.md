@@ -46,4 +46,4 @@ At Terminal 1, go to the folder where you store PX4-Autopilot, then execute
 no_sim=1 make px4_sitl_default gazebo
 ```
 
-Then source the environment, [create an anchor](## Environment setup)
+Then source the environment, [create an anchor](# Environment-setup)
