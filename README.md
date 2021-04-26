@@ -9,8 +9,32 @@ A baby package for beginner to build his own UAV package.
 * Some special customized message definitions (including msg/srv/action) from [itm_ros_comm](https://github.com/tomcattigerkkk/itm_ros_comm).
 * ACADOS should be installed following the instructions from official website [ACADOS](https://github.com/acados/acados).
 
+## Environment setup
+
+create a script file in the work space, such as ``ros.sh`` with following codes
+
+``` bash
+conda activate xxx # if you have some special conda environment
+# note that, if you use another shell, please change zsh to your shell type accordingly
+SETUP_FILE=devel/setup.zsh
+
+if [ -f "$SETUP_FILE" ]; then
+  source devel/setup.zsh
+else
+  source /opt/ros/melodic/setup.zsh
+fi
+
+# setup Gazebo env and update package path
+BUILD_DIR={where you store PX4-Autopilot}/build/px4_sitl_default
+SRC_DIR={where you store PX4-Autopilot}
+export GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:${BUILD_DIR}/build_gazebo
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:${SRC_DIR}/Tools/sitl_gazebo/models
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${BUILD_DIR}/build_gazebo
+```
+
 ## To implement
 
 This package provides a simple implementation of MPC-based controller in ROS for a UAV working with PX4.
 
 Note that, one should implement the trajectory reference node, which indicates the desired trajectory for MPC controller.
+
