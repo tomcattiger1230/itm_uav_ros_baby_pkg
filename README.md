@@ -40,10 +40,12 @@ Note that, one should implement the trajectory reference node, which indicates t
 
 ## Process
 
-At Terminal 1, go to the folder where you store PX4-Autopilot, then execute
+1. At Terminal 1, go to the folder where you store PX4-Autopilot, then execute
 
-``` bash
-no_sim=1 make px4_sitl_default gazebo
-```
+    ``` bash
+    no_sim=1 make px4_sitl_default gazebo
+    ```
 
-Then source the environment, [create an anchor](#Environment-setup)
+2. Then in the second Terminal, source the environment, [see above introduction](#Environment-setup), and launch the ``px4_sitl.launch`` file to call the simulation platform.
+
+3. At the third and fourth Terminal, one can launch his trajectory generator and MPC controller, respectively.
