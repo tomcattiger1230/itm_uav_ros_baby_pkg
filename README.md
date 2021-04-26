@@ -38,3 +38,12 @@ This package provides a simple implementation of MPC-based controller in ROS for
 
 Note that, one should implement the trajectory reference node, which indicates the desired trajectory for MPC controller.
 
+## Process
+
+At Terminal 1, go to the folder where you store PX4-Autopilot, then execute
+
+``` bash
+no_sim=1 make px4_sitl_default gazebo
+```
+
+Then source the environment, [create an anchor](## Environment setup)
