@@ -4,7 +4,7 @@
 Author: Wei Luo
 Date: 2021-03-21 22:27:50
 LastEditors: Wei Luo
-LastEditTime: 2021-04-01 17:33:08
+LastEditTime: 2021-05-11 16:00:20
 Note: Note
 '''
 import os
@@ -20,15 +20,16 @@ import time
 import rospy
 from geometry_msgs.msg import Twist, PoseStamped
 from std_msgs.msg import Empty
-from nav_msgs.msg  import Odometry
+from nav_msgs.msg import Odometry
 from std_srvs.srv import SetBool, SetBoolResponse
 from threading import Thread
 from std_msgs.msg import Header
-from itm_nonlinear_mpc.msg import itm_trajectory_msg
+from itm_mav_msgs.msg import itm_trajectory_msg
 
 from mavros_msgs.msg import AttitudeTarget
 
 import matplotlib.pyplot as plt
+
 
 class MPC_controller(object):
     def __init__(self, quad_model, quad_constraints, t_horizon, n_nodes, sim_required=False):
@@ -50,12 +51,15 @@ class MPC_controller(object):
         self.att_command.type_mask = 128
 
         # subscribers
-        ## the robot state
-        robot_state_sub_ = rospy.Subscriber('/robot_pose', Odometry, self.robot_state_callback)
-        ## trajectory
-        robot_trajectory_sub_ = rospy.Subscriber('/robot_trajectory', itm_trajectory_msg, self.trajectory_command_callback)
+        # the robot state
+        robot_state_sub_ = rospy.Subscriber(
+            '/robot_pose', Odometry, self.robot_state_callback)
+        # trajectory
+        robot_trajectory_sub_ = rospy.Subscriber(
+            '/robot_trajectory', itm_trajectory_msg, self.trajectory_command_callback)
         # publisher
-        self.att_setpoint_pub = rospy.Publisher('/mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
+        self.att_setpoint_pub = rospy.Publisher(
+            '/mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
         # create a server
         server_ = rospy.Service('uav_mpc_server', SetBool, self.state_server)
         # setup optimizer
@@ -68,7 +72,8 @@ class MPC_controller(object):
 
     def robot_state_callback(self, data):
         # robot state as [x, y, z, vx, vy, vz, [w, x, y, z]]
-        self.current_state = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z, data.pose.pose.orientation.w, data.pose.pose.orientation.x, data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z, ]).reshape(1, -1)
+        self.current_state = np.array([data.pose.pose.position.x, data.pose.pose.position.y, data.pose.pose.position.z, data.pose.pose.orientation.w, data.pose.pose.orientation.x,
+                                      data.pose.pose.orientation.y, data.pose.pose.orientation.z, data.twist.twist.linear.x, data.twist.twist.linear.y, data.twist.twist.linear.z, ]).reshape(1, -1)
 
     def trajectory_command_callback(self, data):
         temp_traj = data.traj
@@ -77,7 +82,8 @@ class MPC_controller(object):
         else:
             self.trajectory_path = np.zeros((data.size, 10))
             for i in range(data.size):
-                quaternion_ = self.rpy_to_quaternion([temp_traj[i].roll, temp_traj[i].pitch, temp_traj[i].yaw])
+                quaternion_ = self.rpy_to_quaternion(
+                    [temp_traj[i].roll, temp_traj[i].pitch, temp_traj[i].yaw])
                 self.trajectory_path[i] = np.array([temp_traj[i].x,
                                                     temp_traj[i].y,
                                                     temp_traj[i].z,
@@ -88,13 +94,13 @@ class MPC_controller(object):
                                                     temp_traj[i].vx,
                                                     temp_traj[i].vy,
                                                     temp_traj[i].vz,
-                ])
+                                                    ])
 
     def quadrotor_optimizer_setup(self, ):
         Q_m_ = np.diag([10, 10, 10,
-            0.3, 0.3, 0.3, 0.3,
-            0.05, 0.05, 0.05,
-        ])  # position, q, v
+                        0.3, 0.3, 0.3, 0.3,
+                        0.05, 0.05, 0.05,
+                        ])  # position, q, v
         P_m_ = np.diag([10,  10, 10,
                         0.05, 0.05, 0.05])  # only p and v
         R_m_ = np.diag([5.0, 5.0, 5.0, 0.6])
@@ -104,7 +110,8 @@ class MPC_controller(object):
         nu = self.model.u.size()[0]
         self.nu = nu
         ny = nx + nu
-        n_params = self.model.p.size()[0] if isinstance(self.model.p, ca.SX) else 0
+        n_params = self.model.p.size()[0] if isinstance(
+            self.model.p, ca.SX) else 0
 
         acados_source_path = os.environ['ACADOS_SOURCE_DIR']
         sys.path.insert(0, acados_source_path)
@@ -146,8 +153,10 @@ class MPC_controller(object):
         ocp.cost.yref_e = x_ref_e
 
         # Set constraints
-        ocp.constraints.lbu = np.array([self.constraints.roll_rate_min, self.constraints.pitch_rate_min, self.constraints.yaw_rate_min, self.constraints.thrust_min])
-        ocp.constraints.ubu = np.array([self.constraints.roll_rate_max, self.constraints.pitch_rate_max, self.constraints.yaw_rate_max, self.constraints.thrust_max])
+        ocp.constraints.lbu = np.array([self.constraints.roll_rate_min, self.constraints.pitch_rate_min,
+                                       self.constraints.yaw_rate_min, self.constraints.thrust_min])
+        ocp.constraints.ubu = np.array([self.constraints.roll_rate_max, self.constraints.pitch_rate_max,
+                                       self.constraints.yaw_rate_max, self.constraints.thrust_max])
         ocp.constraints.idxbu = np.array([0, 1, 2, 3])
 
         # initial state
@@ -159,11 +168,11 @@ class MPC_controller(object):
         # explicit Runge-Kutta integrator
         ocp.solver_options.integrator_type = 'ERK'
         ocp.solver_options.print_level = 0
-        ocp.solver_options.nlp_solver_type = 'SQP' # 'SQP_RTI'
+        ocp.solver_options.nlp_solver_type = 'SQP'  # 'SQP_RTI'
         ocp.solver_options.nlp_solver_max_iter = 400
 
         # compile acados ocp
-        ## files are stored in .ros/
+        # files are stored in .ros/
         json_file = os.path.join('./'+self.model.name+'_acados_ocp.json')
         self.solver = AcadosOcpSolver(ocp, json_file=json_file)
         if self.simulation_required:
@@ -174,10 +183,12 @@ class MPC_controller(object):
         if self.trajectory_path is not None and self.current_state is not None:
             current_trajectory = self.trajectory_path
             u_des = np.array([0.0, 0.0, 0.0, self.g_])
-            self.solver.set(self.N, 'yref', np.concatenate((current_trajectory[-1, :3], current_trajectory[-1, -3:])))
+            self.solver.set(self.N, 'yref', np.concatenate(
+                (current_trajectory[-1, :3], current_trajectory[-1, -3:])))
             # self.solver.set(self.N, 'yref', current_trajectory[-1, :6])
             for i in range(self.N):
-                self.solver.set(i, 'yref', np.concatenate((current_trajectory[i], u_des)))
+                self.solver.set(i, 'yref', np.concatenate(
+                    (current_trajectory[i], u_des)))
 
             self.solver.set(0, 'lbx', self.current_state.flatten())
             self.solver.set(0, 'ubx', self.current_state.flatten())
@@ -203,7 +214,7 @@ class MPC_controller(object):
                 self.att_command.body_rate.x = mpc_u_[0]
                 self.att_command.body_rate.y = mpc_u_[1]
                 self.att_command.body_rate.z = mpc_u_[2]
-                self.att_command.thrust = mpc_u_[3]/self.g_  - 0.5
+                self.att_command.thrust = mpc_u_[3]/self.g_ - 0.5
             # self.att_setpoint_pub.publish(self.att_command)
 
         else:
@@ -260,21 +271,21 @@ class MPC_controller(object):
                 pass
             # print("publsich loop takes {} seconds".format(time.time() - t2))
 
+
 if __name__ == '__main__':
     rospy.init_node('offboard_mpc_controller')
     quad_rotor_model = QuadRotorModel()
     try:
         mpc_obj = MPC_controller(quad_model=quad_rotor_model.model,
-        quad_constraints=quad_rotor_model.constraints,
-        t_horizon=2.,
-        n_nodes=20
-        )
+                                 quad_constraints=quad_rotor_model.constraints,
+                                 t_horizon=2.,
+                                 n_nodes=20
+                                 )
         mpc_model_is_ready = True
     except ImportError:
         rospy.logerr('Cannot find any MPC library, Stop the node')
         mpc_model_is_ready = False
         mpc_obj = None
-
 
     while not rospy.is_shutdown() and mpc_model_is_ready:
         if not mpc_obj.mpc_estimation_loop():
